@@ -1,12 +1,20 @@
-package xyz.wagyourtail.konig.editor.gui.menu
+package xyz.wagyourtail.konig.editor.gui
 
 import imgui.ImGui
 import org.lwjgl.glfw.GLFW
-import xyz.wagyourtail.konig.editor.gui.EditorWindow
 import xyz.wagyourtail.konig.editor.lang.L10N
 import java.nio.file.Path
 
 object MainMenu {
+
+    fun process() {
+        if (ImGui.beginMainMenuBar()) {
+            file()
+            edit()
+            view()
+        }
+        ImGui.endMainMenuBar()
+    }
 
     val file = L10N.translate("menu.file")
     val fileNew = L10N.translate("menu.file.new")
@@ -32,10 +40,10 @@ object MainMenu {
                 fileSaveAs()
             }
             if (ImGui.beginMenu(fileRecent.imguiString())) {
-                if (EditorWindow.config.recentOpened.isEmpty()) {
+                if (Settings.recentOpened.isEmpty()) {
                     ImGui.menuItem(fileRecentEmpty.imguiString(), false, false)
                 }
-                for ((i, recent) in EditorWindow.config.recentOpened.withIndex()) {
+                for ((i, recent) in Settings.recentOpened.withIndex()) {
                     if (ImGui.menuItem("$recent###recent$i")) {
                         fileOpenRecent(recent)
                     }
@@ -50,10 +58,13 @@ object MainMenu {
     }
 
     val edit = L10N.translate("menu.edit")
+    val settings = L10N.translate("menu.edit.settings")
 
     fun edit() {
         if (ImGui.beginMenu(edit.imguiString())) {
-
+            if (ImGui.menuItem(settings.imguiString())) {
+                Settings.shown = true
+            }
             ImGui.endMenu()
         }
     }
@@ -68,14 +79,6 @@ object MainMenu {
             }
             ImGui.endMenu()
         }
-    }
-
-    fun render() {
-        if (ImGui.beginMainMenuBar()) {
-            file()
-            edit()
-        }
-        ImGui.endMainMenuBar()
     }
 
     fun fileNew() {
@@ -103,7 +106,8 @@ object MainMenu {
     }
 
     fun viewReset() {
-        EditorWindow.config.resetUI = true
+        Settings.resetUI = true
+        Settings.apply()
     }
 
 }

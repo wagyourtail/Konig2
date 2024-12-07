@@ -1,4 +1,4 @@
-package xyz.wagyourtail.konig.editor.gui.canvas
+package xyz.wagyourtail.konig.editor.gui
 
 import imgui.ImGui
 import xyz.wagyourtail.konig.headers.HeaderResolver

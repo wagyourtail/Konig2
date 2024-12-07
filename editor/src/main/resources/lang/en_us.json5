@@ -1,9 +1,31 @@
 {
   "menu.file": "File",
-  "menu.open": "Open",
-  "menu.save": "Save",
-  "menu.saveAs": "Save As...",
-  "menu.openRecent": "Open Recent",
-  "menu.exit": "Exit",
+  "menu.file.new": "New",
+  "menu.file.open": "Open",
+  "menu.file.save": "Save",
+  "menu.file.saveAs": "Save As...",
+  "menu.file.recent": "Open Recent",
+  "menu.file.recent.empty": "No recent files.",
+  "menu.file.exit": "Exit",
 
+  "menu.edit": "Edit",
+  "menu.edit.settings": "Settings",
+
+  "menu.view": "View",
+  "menu.view.reset": "Reset",
+
+  "settings": "Settings",
+  "settings.general": "General",
+  "settings.general.appearance": "Appearance",
+  "settings.general.appearance.scale": "UI Scale",
+  "settings.general.appearance.font": "Font",
+  "settings.general.appearance.fontSize": "Font Size",
+
+  "settings.editor": "Editor",
+  "settings.editor.canvas": "Canvas",
+  "settings.editor.canvas.snapToGrid": "Snap To Grid",
+  "settings.editor.canvas.gridSize": "Grid Size",
+
+  "settings.apply": "Apply",
+  "settings.close": "Close",
 }

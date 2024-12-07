@@ -1,9 +1,9 @@
 import java.net.URI
 
 plugins {
-    kotlin("multiplatform") version libs.versions.kotlin.asProvider()
-    kotlin("plugin.serialization") version libs.versions.kotlin.asProvider()
-    id("xyz.wagyourtail.commons-gradle") version libs.versions.commons
+    alias(libs.plugins.kotlin.multiplatform)
+    alias(libs.plugins.kotlin.plugin.serialization)
+    alias(libs.plugins.commons.gradle)
     `maven-publish`
 }
 
@@ -20,6 +20,8 @@ allprojects {
     repositories {
         mavenCentral()
         maven("https://maven.wagyourtail.xyz/snapshots")
+        maven("https://maven.pkg.jetbrains.space/public/p/compose/dev")
+        google()
     }
 }
 

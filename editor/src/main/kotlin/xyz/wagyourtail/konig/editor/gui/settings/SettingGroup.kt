@@ -1,75 +1,162 @@
 package xyz.wagyourtail.konig.editor.gui.settings
 
 import imgui.internal.ImGui
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonElement
-import kotlinx.serialization.json.decodeFromJsonElement
-import kotlinx.serialization.json.encodeToJsonElement
+import kotlinx.serialization.json.*
 import xyz.wagyourtail.konig.editor.lang.L10N
+import java.lang.invoke.MethodHandles
 import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KProperty
 
-abstract class SettingsGroup(
+sealed class SettingGroup(
     val key: String,
 ) {
+    companion object {
+        private val lookup = MethodHandles.lookup()
+    }
     abstract val root: RootSettingGroup
-    private val translateValue = L10N.translate(key)
+
+    protected val translateValue = L10N.translate(key)
     @PublishedApi
     internal val settings = mutableMapOf<String, Setting<*>>()
-    private val subGroups: MutableList<SettingsGroup> = mutableListOf()
+    protected val subGroups = mutableMapOf<String, Group>()
 
-    fun renderSubtree() {
-        val open = ImGui.treeNode(key)
-        if (ImGui.isItemClicked()) {
+    open val allSettings: Set<Setting<*>> by lazy {
+        (subGroups.values.flatMap { it.allSettings } + settings.values).toSet()
+    }
 
+    fun ensureInit() {
+        this::class.nestedClasses.forEach {
+            lookup.ensureInitialized(it.java)
+        }
+        this.subGroups.values.forEach { it.ensureInit() }
+    }
+
+    open fun renderSubtree() {
+        subGroups.values.forEach {
+            val open = ImGui.treeNode(it.translateValue.imguiString())
+            if (ImGui.isItemClicked()) {
+                root.active = it
+            }
+            if (open) {
+                it.renderSubtree()
+                ImGui.treePop()
+            }
         }
     }
 
     open fun renderContent() {
-
-    }
-
-    fun render() {
-
+        for (value in settings.values) {
+            value.render()
+        }
     }
 
     fun apply() {
         for (value in settings.values) {
             value.apply()
         }
-        for (subGroup in subGroups) {
+        for (subGroup in subGroups.values) {
             subGroup.apply()
         }
     }
 
-    inline fun <reified T> setting(name: String, default: T, transient: Boolean = false, noinline render: (L10N.TranslatedString) -> Unit): Setting<T> {
+    fun reset() {
+        for (value in settings.values) {
+            value.reset()
+        }
+        for (subGroup in subGroups.values) {
+            subGroup.reset()
+        }
+    }
+
+    fun fromJson(json: JsonElement) {
+        if (json !is JsonObject) error("element is not object")
+        for ((key, value) in json) {
+            if (key in subGroups) {
+                subGroups[key]!!.fromJson(value)
+            }
+            if (key in settings) {
+                settings[key]!!.readJson(value)
+            }
+        }
+    }
+
+    fun toJson(): JsonElement {
+        return buildJsonObject {
+            for ((key, value) in subGroups) {
+                put(key, value.toJson())
+            }
+            for ((key, value) in settings) {
+                put(key, value.writeJson())
+            }
+        }
+    }
+
+    inline fun <reified T> setting(default: T, transient: Boolean = false, noinline render: (L10N.TranslatedString, T) -> Unit): SettingProvider<T> {
+        return SettingProvider(
+            this,
+            default,
+            transient,
+            render,
+            { Json.decodeFromJsonElement<T>(it) },
+            { Json.encodeToJsonElement(it) },
+        )
+    }
+
+    inline fun <reified T> setting(name: String, default: T, transient: Boolean = false, noinline render: (L10N.TranslatedString, T) -> Unit): Setting<T> {
         return Setting(
-            name,
+            "$key.$name",
             default,
             transient,
             render,
             { Json.decodeFromJsonElement<T>(it) },
             { Json.encodeToJsonElement(it) },
         ).also {
-            settings[it.key] = it
+            settings[name] = it
         }
     }
 
-    inline fun
+    open inner class Group(key: String) : SettingGroup("${this@SettingGroup.key}.$key") {
+        override val root: RootSettingGroup
+            get() = this@SettingGroup.root
+
+        init {
+            this@SettingGroup.subGroups[key] = this
+        }
+    }
 
 }
 
-value class Group(val settingGroup: SettingsGroup) {
-    
+class SettingProvider<T>(
+    val group: SettingGroup,
+    val default: T,
+    val transient: Boolean,
+    private val render: (L10N.TranslatedString, T) -> Unit,
+    private val decodeJson: (JsonElement) -> T,
+    private val encodeJson: (T) -> JsonElement
+) {
+
+    operator fun provideDelegate(thisRef: Any?, property: KProperty<*>): Setting<T> {
+        return Setting(
+            "${group.key}.${property.name}",
+            default,
+            transient,
+            render,
+            decodeJson,
+            encodeJson
+        ).also {
+            group.settings[property.name] = it
+        }
+    }
+
 }
 
 data class Setting<T>(
     val key: String,
     val default: T,
     val transient: Boolean,
-    val render: (L10N.TranslatedString) -> Unit,
-    val decodeFunction: (JsonElement) -> T,
-    val encodeJson: (T) -> JsonElement,
+    private val render: (L10N.TranslatedString, T) -> Unit,
+    private val decodeJson: (JsonElement) -> T,
+    private val encodeJson: (T) -> JsonElement,
 ) : ReadWriteProperty<Any?, T> {
     var value: T = default
     var temp: T = default
@@ -85,15 +172,19 @@ data class Setting<T>(
     }
 
     fun render() {
-        render(translateValue)
+        render(translateValue, temp)
     }
 
     fun apply() {
         value = temp
     }
 
+    fun reset() {
+        temp = value
+    }
+
     fun readJson(json: JsonElement) {
-        temp = decodeFunction(json)
+        temp = decodeJson(json)
     }
 
     fun writeJson(): JsonElement {

@@ -153,12 +153,17 @@
     </block>
     <block name="randint" group="math">
         <io>
+            <output side="right" justify="center" name="out" type="number"/>
+        </io>
+    </block>
+    <block name="randrange" group="math">
+        <io>
             <input side="left" justify="center" name="in1" type="number"/>
             <input side="left" justify="center" name="in2" type="number"/>
             <output side="right" justify="center" name="out" type="number"/>
         </io>
     </block>
-    <block name="randrange" group="math">
+    <block name="randintrange" group="math">
         <io>
             <input side="left" justify="center" name="in1" type="number"/>
             <input side="left" justify="center" name="in2" type="number"/>
@@ -194,6 +199,7 @@
         </io>
     </block>
     <block name="loop" group="flow">
+        <io></io>
         <hollow name="inner">
             <input side="right" justify="center" name="continue" type="boolean"/>
         </hollow>
@@ -219,5 +225,67 @@
         <hollow name="false" group="stack">
 
         </hollow>
+    </block>
+    <block name="lt" group="boolean">
+        <io>
+            <input side="left" justify="center" name="in1" type="number"/>
+            <input side="left" justify="center" name="in2" type="number"/>
+            <output side="right" justify="center" name="out" type="boolean"/>
+        </io>
+    </block>
+    <block name="gt" group="boolean">
+        <io>
+            <input side="left" justify="center" name="in1" type="number"/>
+            <input side="left" justify="center" name="in2" type="number"/>
+            <output side="right" justify="center" name="out" type="boolean"/>
+        </io>
+    </block>
+    <block name="leq" group="boolean">
+        <io>
+            <input side="left" justify="center" name="in1" type="number"/>
+            <input side="left" justify="center" name="in2" type="number"/>
+            <output side="right" justify="center" name="out" type="boolean"/>
+        </io>
+    </block>
+    <block name="geq" group="boolean">
+        <io>
+            <input side="left" justify="center" name="in1" type="number"/>
+            <input side="left" justify="center" name="in2" type="number"/>
+            <output side="right" justify="center" name="out" type="boolean"/>
+        </io>
+    </block>
+    <block name="eq" group="boolean">
+        <io>
+            <input side="left" justify="center" name="in1" type="number"/>
+            <input side="left" justify="center" name="in2" type="number"/>
+            <output side="right" justify="center" name="out" type="boolean"/>
+        </io>
+    </block>
+    <block name="and" group="boolean">
+        <io>
+            <input side="left" justify="center" name="in1" type="boolean"/>
+            <input side="left" justify="center" name="in2" type="boolean"/>
+            <output side="right" justify="center" name="out" type="boolean"/>
+        </io>
+    </block>
+    <block name="or" group="boolean">
+        <io>
+            <input side="left" justify="center" name="in1" type="boolean"/>
+            <input side="left" justify="center" name="in2" type="boolean"/>
+            <output side="right" justify="center" name="out" type="boolean"/>
+        </io>
+    </block>
+    <block name="xor" group="boolean">
+        <io>
+            <input side="left" justify="center" name="in1" type="boolean"/>
+            <input side="left" justify="center" name="in2" type="boolean"/>
+            <output side="right" justify="center" name="out" type="boolean"/>
+        </io>
+    </block>
+    <block name="not" group="boolean">
+        <io>
+            <input side="left" justify="center" name="in" type="boolean"/>
+            <output side="right" justify="center" name="out" type="boolean"/>
+        </io>
     </block>
 </headers>
