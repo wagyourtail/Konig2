@@ -10,16 +10,16 @@ xmlutil = "0.90.1"
 asm = "9.7"
 okio = "3.7.0"
 
-commons = "1.0.0-SNAPSHOT"
+commons = "1.0.2-SNAPSHOT"
 
 apache_commons_compress = "1.26.2"
 
 clikt = "4.3.0"
 slf4j = "2.0.13"
 
-compose = "1.7.1"
-
 jszip = "3.10.1"
+
+imgui = "1.87.7"
 
 [libraries]
 asm = { module = "org.ow2.asm:asm", version.ref = "asm" }
@@ -30,7 +30,14 @@ asm_tree = { module = "org.ow2.asm:asm-tree", version.ref = "asm" }
 
 okio = { module = "com.squareup.okio:okio", version.ref = "okio" }
 
+commons = { module = "xyz.wagyourtail.commons:commons", version.ref = "commons" }
 commons_kt = { module = "xyz.wagyourtail.commons:commons-kt", version.ref = "commons" }
+
+imgui_java_app = { module = "io.github.spair:imgui-java-app", version.ref = "imgui" }
+imgui_java_lwjgl3 = { module = "io.github.spair:imgui-lwjgl3", version.ref = "imgui" }
+imgui_natives_linux = { module = "io.github.spair:imgui-java-natives-linux", version.ref = "imgui" }
+imgui_natives_windows = { module = "io.github.spair:imgui-java-natives-windows", version.ref = "imgui" }
+imgui_natives_macos = { module = "io.github.spair:imgui-java-natives-macos", version.ref = "imgui" }
 
 jetbrains_annotations_kmp = { module = "com.sschr15.annotations:jb-annotations-kmp", version.ref = "jb_annotations" }
 appache_commons_compress = { module = "org.apache.commons:commons-compress", version.ref = "apache_commons_compress" }
@@ -52,8 +59,5 @@ kotlin_jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlin_multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 
 kotlin_plugin_serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
-
-compose = { id = "org.jetbrains.compose", version.ref = "compose" }
-compose_kotlin = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 
 commons_gradle = { id = "xyz.wagyourtail.commons-gradle", version.ref = "commons" }

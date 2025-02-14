@@ -59,23 +59,14 @@ sealed class SettingGroup(
         }
     }
 
-    fun reset() {
-        for (value in settings.values) {
-            value.reset()
-        }
-        for (subGroup in subGroups.values) {
-            subGroup.reset()
-        }
-    }
-
     fun fromJson(json: JsonElement) {
         if (json !is JsonObject) error("element is not object")
         for ((key, value) in json) {
             if (key in subGroups) {
-                subGroups[key]!!.fromJson(value)
+                subGroups.getValue(key).fromJson(value)
             }
             if (key in settings) {
-                settings[key]!!.readJson(value)
+                settings.getValue(key).readJson(value)
             }
         }
     }
@@ -86,27 +77,30 @@ sealed class SettingGroup(
                 put(key, value.toJson())
             }
             for ((key, value) in settings) {
+                if (value.transient) continue
                 put(key, value.writeJson())
             }
         }
     }
 
-    inline fun <reified T> setting(default: T, transient: Boolean = false, noinline render: (L10N.TranslatedString, T) -> Unit): SettingProvider<T> {
+    inline fun <reified T> setting(default: T, transient: Boolean = false, immediateApply: Boolean = false, noinline render: (L10N.TranslatedString, T) -> Unit = { _, _ -> }): SettingProvider<T> {
         return SettingProvider(
             this,
             default,
             transient,
+            immediateApply,
             render,
             { Json.decodeFromJsonElement<T>(it) },
             { Json.encodeToJsonElement(it) },
         )
     }
 
-    inline fun <reified T> setting(name: String, default: T, transient: Boolean = false, noinline render: (L10N.TranslatedString, T) -> Unit): Setting<T> {
+    inline fun <reified T> setting(name: String, default: T, transient: Boolean = false, immediateApply: Boolean = false, noinline render: (L10N.TranslatedString, T) -> Unit = { _, _ -> }): Setting<T> {
         return Setting(
             "$key.$name",
             default,
             transient,
+            immediateApply,
             render,
             { Json.decodeFromJsonElement<T>(it) },
             { Json.encodeToJsonElement(it) },
@@ -130,6 +124,7 @@ class SettingProvider<T>(
     val group: SettingGroup,
     val default: T,
     val transient: Boolean,
+    val immediateApply: Boolean,
     private val render: (L10N.TranslatedString, T) -> Unit,
     private val decodeJson: (JsonElement) -> T,
     private val encodeJson: (T) -> JsonElement
@@ -140,6 +135,7 @@ class SettingProvider<T>(
             "${group.key}.${property.name}",
             default,
             transient,
+            immediateApply,
             render,
             decodeJson,
             encodeJson
@@ -154,6 +150,7 @@ data class Setting<T>(
     val key: String,
     val default: T,
     val transient: Boolean,
+    val immediateApply: Boolean,
     private val render: (L10N.TranslatedString, T) -> Unit,
     private val decodeJson: (JsonElement) -> T,
     private val encodeJson: (T) -> JsonElement,
@@ -169,6 +166,9 @@ data class Setting<T>(
 
     override fun setValue(thisRef: Any?, property: KProperty<*>, value: T) {
         temp = value
+        if (immediateApply) {
+            apply()
+        }
     }
 
     fun render() {

@@ -47,8 +47,16 @@ abstract class HeaderResolver {
         return byName[name]
     }
 
+    abstract fun availableIntern(): List<String>
+
     abstract fun resolveIntern(name: String): Headers
 
     abstract fun resolveSrc(path: String): Headers
+
+    fun clear() {
+        _byName.clear()
+        _byGroup.clear()
+        internsRead.clear()
+    }
 
 }

@@ -1,5 +1,6 @@
 pluginManagement {
     repositories {
+        mavenLocal()
         maven("https://maven.wagyourtail.xyz/snapshots")
         maven("https://maven.pkg.jetbrains.space/public/p/compose/dev")
         google()

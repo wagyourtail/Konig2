@@ -7,36 +7,54 @@ import imgui.app.Application
 import imgui.app.Configuration
 import imgui.flag.ImGuiConfigFlags
 import imgui.flag.ImGuiDir
+import imgui.flag.ImGuiKey
+import imgui.flag.ImGuiMouseButton
 import imgui.internal.ImGui
 import imgui.type.ImInt
-import xyz.wagyourtail.konig.countToTen
-import xyz.wagyourtail.konig.editor.gui.canvas.Canvas
-import xyz.wagyourtail.konig.editor.gui.canvas.RootCanvas
+import kotlinx.serialization.decodeFromString
+import xyz.wagyourtail.commons.core.OSUtils
+import xyz.wagyourtail.konig.Examples
+import xyz.wagyourtail.konig.editor.gui.window.BlockOptions
+import xyz.wagyourtail.konig.editor.gui.components.BlockRenderer
+import xyz.wagyourtail.konig.editor.gui.window.selector.NodeSelector
+import xyz.wagyourtail.konig.editor.gui.window.Settings
+import xyz.wagyourtail.konig.editor.gui.window.canvas.RootCanvas
 import xyz.wagyourtail.konig.java.JavaHeaderResolver
+import xyz.wagyourtail.konig.structure.CodeFile
+import xyz.wagyourtail.konig.structure.XML
+import java.nio.file.Path
 import java.nio.file.Paths
 import kotlin.io.path.*
 import kotlin.properties.Delegates
 
 const val DEBUG_NOSAVE = false
 
-object EditorWindow : Application() {
+object KonigEditor : Application() {
     var currentScale = 1f
     var currentFontSize = 13f
     var currentFont = "default"
 
-    val canvases = mutableListOf<RootCanvas>()
+    val resolver = JavaHeaderResolver()
+    lateinit var canvas: RootCanvas
     val selectors = mutableListOf<NodeSelector>()
 
+    var savePath: Path? = null
 
-    @OptIn(ExperimentalPathApi::class)
+    var placingBlock: BlockRenderer<*>? = null
+
     val availableFonts by lazy {
-        val paths = sequenceOf(
-            //TODO: implement per-os
-            Paths.get("/usr/share/fonts/TTF"),
-            Paths.get("/usr/local/share/fonts/TTF"),
-            Paths.get(System.getProperty("user.home")).resolve(".local/share/fonts/TTF")
-        )
-        paths.filter { it.exists() }
+        if (OSUtils.getOsId() == OSUtils.WINDOWS) {
+            sequenceOf(
+                Paths.get("C:\\Windows\\Fonts")
+            )
+        } else {
+            sequenceOf(
+                //TODO: implement per-os
+                Paths.get("/usr/share/fonts/TTF"),
+                Paths.get("/usr/local/share/fonts/TTF"),
+                Paths.get(System.getProperty("user.home")).resolve(".local/share/fonts/TTF")
+            )
+        }.filter { it.exists() }
             .flatMap { it.walk() }
             .filter { it.extension.lowercase() == "ttf" }
             .sortedBy { it.name }
@@ -44,8 +62,9 @@ object EditorWindow : Application() {
     }
 
     override fun configure(config: Configuration) {
-        Settings.load()
         super.configure(config)
+        Settings.load()
+        config.title = "Konig Editor"
     }
 
     fun setFontGlobal(name: String, size: Float, earlyRun: Boolean = false) {
@@ -97,12 +116,31 @@ object EditorWindow : Application() {
     }
 
     override fun preRun() {
-        val resolver = JavaHeaderResolver()
-        resolver.readHeaders(countToTen.headers)
-        canvases.add(RootCanvas("test", resolver, countToTen.main))
+        openCode(Examples.countToTen)
         for (group in resolver.byGroup.keys) {
             selectors.add(NodeSelector(group, resolver))
         }
+    }
+
+    fun openFile(path: Path) {
+        openCode(XML.decodeFromString<CodeFile>(path.readText()))
+        savePath = path
+    }
+
+    fun openExample(name: String) {
+        openCode(Examples.byName[name] ?: error("Unknown example: $name"))
+    }
+
+    fun openCode(code: CodeFile) {
+        savePath = null
+        resolver.clear()
+        selectors.clear()
+        resolver.readHeaders(code.headers)
+        canvas = RootCanvas(code.name, resolver, code.main)
+        for (group in resolver.byGroup.keys) {
+            selectors.add(NodeSelector(group, resolver))
+        }
+        Settings.resetUI = true
     }
 
     var dockId by Delegates.notNull<Int>()
@@ -123,13 +161,13 @@ object EditorWindow : Application() {
     override fun preProcess() {
         styleColorsDark()
         dockId = dockSpaceOverViewport(getMainViewport())
-
     }
 
     override fun process() {
         MainMenu.process()
-        canvases.forEach(RootCanvas::process)
+        canvas.process()
         selectors.forEach(NodeSelector::process)
+        BlockOptions.process()
         Settings.process()
     }
 
@@ -138,13 +176,14 @@ object EditorWindow : Application() {
             ImGui.dockBuilderRemoveNodeChildNodes(dockId)
             val central = ImInt()
             val lower = ImInt()
+            val right = ImInt()
             ImGui.dockBuilderSplitNode(dockId, ImGuiDir.Down, 0.3f, lower, central)
-            for (cv in canvases) {
-                ImGui.dockBuilderDockWindow(cv.windowId, central.get())
-            }
+            ImGui.dockBuilderSplitNode(central.get(), ImGuiDir.Right, 0.3f, right, central)
+            ImGui.dockBuilderDockWindow(canvas.windowId, central.get())
             for (sel in selectors) {
                 ImGui.dockBuilderDockWindow(sel.windowId, lower.get())
             }
+            ImGui.dockBuilderDockWindow("blockOptions", right.get())
             Settings.resetUI = false
             Settings.apply()
         }

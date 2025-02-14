@@ -18,6 +18,7 @@ allprojects {
     }
 
     repositories {
+        mavenLocal()
         mavenCentral()
         maven("https://maven.wagyourtail.xyz/snapshots")
         maven("https://maven.pkg.jetbrains.space/public/p/compose/dev")
@@ -72,6 +73,8 @@ kotlin {
         }
         val jvmMain by getting {
             dependencies {
+                api(kotlin("compiler-embeddable"))
+
                 implementation(libs.appache.commons.compress)
 
                 implementation(libs.asm)

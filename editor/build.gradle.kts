@@ -1,11 +1,8 @@
-import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import xyz.wagyourtail.commons.gradle.shadow.ShadowJar
 
 plugins {
     kotlin("jvm")
     kotlin("plugin.serialization")
-    alias(libs.plugins.compose)
-    alias(libs.plugins.compose.kotlin)
 }
 
 kotlin {
@@ -15,12 +12,15 @@ kotlin {
 dependencies {
     implementation(project(":"))
 
+    implementation(libs.commons)
     implementation(libs.commons.kt)
 
     implementation(libs.slf4j.api)
     implementation(libs.slf4j.simple)
 
-    implementation(compose.desktop.currentOs)
+    implementation(libs.imgui.java.app)
+    implementation(libs.imgui.natives.linux)
+    implementation(libs.imgui.natives.windows)
 
     implementation(libs.kotlin.serialization.json)
 
@@ -46,16 +46,3 @@ val shadowJar by tasks.registering(ShadowJar::class) {
 tasks.assemble {
     dependsOn(shadowJar)
 }
-
-compose.desktop {
-    application {
-        mainClass = "xyz.wagyourtail.konig.editor.MainKt"
-
-        nativeDistributions {
-            targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb, TargetFormat.AppImage)
-            packageName = "konig"
-            packageVersion = version.toString()
-        }
-    }
-}
-

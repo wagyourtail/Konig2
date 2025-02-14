@@ -2,6 +2,7 @@ package xyz.wagyourtail.konig.editor.gui
 
 import imgui.ImGui
 import org.lwjgl.glfw.GLFW
+import xyz.wagyourtail.konig.editor.gui.window.Settings
 import xyz.wagyourtail.konig.editor.lang.L10N
 import java.nio.file.Path
 
@@ -102,12 +103,11 @@ object MainMenu {
     }
 
     fun fileExit() {
-        GLFW.glfwSetWindowShouldClose(EditorWindow.handle, true)
+        GLFW.glfwSetWindowShouldClose(KonigEditor.handle, true)
     }
 
     fun viewReset() {
         Settings.resetUI = true
-        Settings.apply()
     }
 
 }

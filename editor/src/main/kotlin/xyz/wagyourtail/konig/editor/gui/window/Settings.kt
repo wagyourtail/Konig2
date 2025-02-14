@@ -1,8 +1,6 @@
-package xyz.wagyourtail.konig.editor.gui
+package xyz.wagyourtail.konig.editor.gui.window
 
 import imgui.ImGui
-import imgui.flag.ImGuiSliderFlags
-import imgui.type.ImBoolean
 import imgui.type.ImFloat
 import imgui.type.ImInt
 import kotlinx.serialization.ExperimentalSerializationApi
@@ -10,9 +8,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.decodeFromStream
 import kotlinx.serialization.json.encodeToStream
-import xyz.wagyourtail.commonskt.properties.LazyMutable
-import xyz.wagyourtail.konig.editor.gui.EditorWindow.currentFont
-import xyz.wagyourtail.konig.editor.gui.Settings.General.Appearance.scale
+import xyz.wagyourtail.konig.editor.gui.KonigEditor
 import xyz.wagyourtail.konig.editor.gui.settings.RootSettingGroup
 import java.nio.file.Path
 import java.nio.file.Paths
@@ -30,12 +26,9 @@ object Settings : RootSettingGroup() {
         }
     }
 
-    var resetUI: Boolean by setting(true) { key, temp ->
+    var resetUI: Boolean by setting(true, immediateApply = true)
 
-    }
-    var recentOpened: List<Path> by setting(listOf()) { key, temp ->
-
-    }
+    var recentOpened: List<Path> by setting(listOf())
 
     object General : Group("general") {
 
@@ -47,7 +40,7 @@ object Settings : RootSettingGroup() {
                 scale = value.get()
             }
 
-            private val availableFonts = (EditorWindow.availableFonts.keys + "default").sorted().toTypedArray()
+            private val availableFonts = (KonigEditor.availableFonts.keys + "default").sorted().toTypedArray()
             var font: String by setting("default") { key, temp ->
                 val currentFont = availableFonts.binarySearch(temp)
                 val value = ImInt(currentFont)

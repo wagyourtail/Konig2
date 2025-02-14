@@ -2,33 +2,52 @@ package xyz.wagyourtail.konig.structure
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import nl.adaptivity.xmlutil.serialization.XML
 import nl.adaptivity.xmlutil.serialization.XmlElement
 import nl.adaptivity.xmlutil.serialization.XmlValue
 
 const val VERSION = "1.0"
+val XML = XML { recommended() }
 
 @Serializable
 @SerialName("code")
-data class CodeFile(
+class CodeFile(
     val name: String,
     val version: String = VERSION,
     val headers: Headers,
     val main: Main
-)
+) {
+
+    override fun toString(): String {
+        return XML.encodeToString(this)
+    }
+
+}
+
 
 @Serializable
 @SerialName("headers")
-data class Headers(
+class Headers(
     val version: String = VERSION,
     val headers: MutableList<HeaderChild>
-)
+) {
+
+    constructor(version: String, vararg headers: HeaderChild): this(version, headers.toMutableList())
+
+    constructor(vararg headers: HeaderChild): this(VERSION, headers.toMutableList())
+
+    override fun toString(): String {
+        return XML.encodeToString(this)
+    }
+
+}
 
 @Serializable
 sealed class HeaderChild
 
 @Serializable
 @SerialName("block")
-data class HeaderBlock(
+class HeaderBlock(
     val name: String,
     val group: String,
     val generics: Generics? = null,
@@ -36,43 +55,90 @@ data class HeaderBlock(
     val hollow: List<Hollow>,
     val dynamicHollow: List<DynamicHollow>,
     val image: Image? = null,
-) : HeaderChild()
+) : HeaderChild() {
+
+    override fun toString(): String {
+        return XML.encodeToString(this)
+    }
+
+}
 
 @Serializable
 @SerialName("generics")
-data class Generics(
+class Generics(
     val generics: List<Generic>
-)
+) {
+
+    override fun toString(): String {
+        return XML.encodeToString(this)
+    }
+
+}
 
 @Serializable
 @SerialName("generic")
-data class Generic(
+class Generic(
     val name: String,
     val extends: String? = null,
-)
+) {
+
+    override fun toString(): String {
+        return XML.encodeToString(this)
+    }
+
+}
 
 @Serializable
 @SerialName("hollow")
-data class Hollow(
+class Hollow(
     val name: String,
     val group: String? = null,
-    val inputs: List<HeaderBlockInput>,
-    val outputs: List<HeaderBlockOutput>
-)
+    val io: List<HeaderBlockIOField>
+) {
+
+    val groupId
+        get() = group ?: "ungrouped|$name"
+
+    val byName by lazy {
+        io.associateBy { it.name }
+    }
+
+    override fun toString(): String {
+        return XML.encodeToString(this)
+    }
+
+}
 
 @Serializable
 @SerialName("dynamichollow")
-data class DynamicHollow(
+class DynamicHollow(
     val group: String,
-    val inputs: List<HeaderBlockInput>,
-    val outputs: List<HeaderBlockOutput>
-)
+    val io: List<HeaderBlockIOField>,
+) {
+
+    val byName by lazy {
+        io.associateBy { it.name }
+    }
+
+    override fun toString(): String {
+        return XML.encodeToString(this)
+    }
+
+}
 
 @Serializable
 @SerialName("io")
-data class HeaderBlockIO(
+class HeaderBlockIO(
     val ports: List<HeaderBlockIOField>,
-)
+) {
+    val byName by lazy {
+        ports.associateBy { it.name }
+    }
+
+    override fun toString(): String {
+        return XML.encodeToString(this)
+    }
+}
 
 enum class Side {
     @SerialName("top")
@@ -112,7 +178,7 @@ enum class Justify {
         }
 
         operator fun get(side: Side): List<Justify> {
-            return bySide[side]!!
+            return bySide.getValue(side)
         }
     }
 
@@ -128,7 +194,7 @@ sealed class HeaderBlockIOField {
 
 @Serializable
 @SerialName("input")
-data class HeaderBlockInput(
+class HeaderBlockInput(
     override val name: String,
     @XmlElement(false)
     override val side: Side,
@@ -136,31 +202,55 @@ data class HeaderBlockInput(
     override val justify: Justify,
     override val type: String,
     val optional: Boolean = false
-) : HeaderBlockIOField()
+) : HeaderBlockIOField() {
+
+    override fun toString(): String {
+        return XML.encodeToString(this)
+    }
+
+}
 
 @Serializable
 @SerialName("output")
-data class HeaderBlockOutput(
+class HeaderBlockOutput(
     override val name: String,
     @XmlElement(false)
     override val side: Side,
     @XmlElement(false)
     override val justify: Justify,
     override val type: String,
-) : HeaderBlockIOField()
+) : HeaderBlockIOField() {
+
+    override fun toString(): String {
+        return XML.encodeToString(this)
+    }
+
+}
 
 @Serializable
 @SerialName("image")
-data class Image(
+class Image(
     val src: String
-)
+) {
+
+    override fun toString(): String {
+        return XML.encodeToString(this)
+    }
+
+}
 
 @Serializable
 @SerialName("include")
-data class Include(
+class Include(
     val src: String? = null,
     val intern: String? = null
-) : HeaderChild()
+) : HeaderChild() {
+
+    override fun toString(): String {
+        return XML.encodeToString(this)
+    }
+
+}
 
 sealed class Code {
     abstract val wires: Wires
@@ -169,60 +259,103 @@ sealed class Code {
 
 @Serializable
 @SerialName("main")
-data class Main(
+class Main(
     override val wires: Wires,
     override val blocks: Blocks
-) : Code()
+) : Code() {
+
+    override fun toString(): String {
+        return XML.encodeToString(this)
+    }
+
+}
 
 @Serializable
 @SerialName("wires")
-data class Wires(
+class Wires(
     @XmlElement(true)
     val wires: MutableList<Wire>,
-)
+) {
+
+    constructor(vararg wires: Wire) : this(wires.toMutableList())
+
+    override fun toString(): String {
+        return XML.encodeToString(this)
+    }
+
+}
 
 @Serializable
 @SerialName("blocks")
-data class Blocks(
+class Blocks(
     val blocks: MutableList<Block>
-)
+) {
+
+    constructor(vararg blocks: Block) : this(blocks.toMutableList())
+
+    override fun toString(): String {
+        return XML.encodeToString(this)
+    }
+
+}
 
 @Serializable
 @SerialName("wire")
-data class Wire(
+class Wire(
     val id: Int,
     val connections: MutableList<WireConnection>
-)
+) {
+
+    constructor(id: Int, vararg connections: WireConnection) : this(id, connections.toMutableList())
+
+    override fun toString(): String {
+        return XML.encodeToString(this)
+    }
+}
 
 @Serializable
 sealed class WireConnection {
-    abstract val x: Float
-    abstract val y: Float
+    abstract var x: Float
+    abstract var y: Float
 }
 
 @Serializable
 @SerialName("end")
-data class WireEnd(
-    override val x: Float,
-    override val y: Float,
+class WireEnd(
+    override var x: Float,
+    override var y: Float,
     val block: Int,
     val port: String
 ) : WireConnection()
 
 @Serializable
 @SerialName("branch")
-data class WireBranch(
-    override val x: Float,
-    override val y: Float,
+class WireBranch(
+    override var x: Float,
+    override var y: Float,
     val connections: MutableList<WireConnection>
-) : WireConnection()
+) : WireConnection() {
+
+    constructor(x: Float, y: Float, vararg connections: WireConnection) : this(x, y, connections.toMutableList())
+
+    override fun toString(): String {
+        return XML.encodeToString(this)
+    }
+
+}
 
 @Serializable
 @SerialName("segment")
-data class WireSegment(
-    override val x: Float,
-    override val y: Float,
-) : WireConnection()
+class WireSegment(
+    override var x: Float,
+    override var y: Float,
+) : WireConnection() {
+
+    override fun toString(): String {
+        return XML.encodeToString(this)
+    }
+
+}
 
 enum class Rotate {
     @SerialName("0")
@@ -237,12 +370,12 @@ enum class Rotate {
 
 @Serializable
 @SerialName("block")
-data class Block(
+class Block(
     val type: String,
     val id: Int,
     var x: Float,
     var y: Float,
-    val io: BlockIO,
+    val io: BlockIO = BlockIO(),
     @XmlElement(false)
     var rotate: Rotate = Rotate.ROT_0,
     var flipH: Boolean = false,
@@ -251,16 +384,35 @@ data class Block(
     var scaleY: Float = 1f,
     @XmlElement(true)
     val value: Value? = null,
-    val virtual: MutableList<Virtual> = mutableListOf(),
+    val virtual: Virtual? = null,
     val innercode: MutableList<InnerCode> = mutableListOf(),
-)
+) {
+
+
+    override fun toString(): String {
+        return XML.encodeToString(this)
+    }
+
+}
 
 @Serializable
 @SerialName("io")
-data class BlockIO(
-    val inputs: MutableList<BlockInput> = mutableListOf(),
-    val outputs: MutableList<BlockOutput> = mutableListOf()
-)
+class BlockIO(
+    val ports: MutableList<BlockIOField> = mutableListOf(),
+) {
+
+    @Deprecated("Use the primary constructor with ports parameter instead.")
+    constructor(
+        inputs: List<BlockInput> = emptyList(),
+        outputs: List<BlockOutput> = emptyList(),
+    ) : this((inputs + outputs).toMutableList())
+
+    constructor(vararg ports: BlockIOField) : this(ports.toMutableList())
+
+    override fun toString(): String {
+        return XML.encodeToString(this)
+    }
+}
 
 @Serializable
 sealed class BlockIOField {
@@ -270,33 +422,61 @@ sealed class BlockIOField {
 
 @Serializable
 @SerialName("input")
-data class BlockInput(
+class BlockInput(
     override val name: String,
     override val wire: Int,
-) : BlockIOField()
+) : BlockIOField() {
+
+    override fun toString(): String {
+        return XML.encodeToString(this)
+    }
+
+}
 
 @Serializable
 @SerialName("output")
-data class BlockOutput(
+class BlockOutput(
     override val name: String,
     override val wire: Int,
-): BlockIOField()
+): BlockIOField() {
+
+    override fun toString(): String {
+        return XML.encodeToString(this)
+    }
+
+}
 
 @Serializable
 @SerialName("value")
-data class Value(
+class Value(
     val type: String,
     @XmlValue(true)
     val value: String
-)
+) {
+
+    override fun toString(): String {
+        return XML.encodeToString(this)
+    }
+
+}
 
 @Serializable
 @SerialName("virtual")
-data class Virtual(
+class Virtual(
     val ports: MutableList<Port>,
-    val forName: String? = null,
-    val forGroup: String? = null,
-)
+) {
+
+    val byName by lazy {
+        ports.associateBy { it.name }
+    }
+
+    constructor(vararg ports: Port) : this(ports.toMutableList())
+
+    override fun toString(): String {
+        return XML.encodeToString(this)
+    }
+
+}
 
 enum class Direction {
     @SerialName("in")
@@ -307,7 +487,7 @@ enum class Direction {
 
 @Serializable
 @SerialName("port")
-data class Port(
+class Port(
     @XmlElement(false)
     val direction: Direction,
     val id: Int,
@@ -317,17 +497,27 @@ data class Port(
     @XmlElement(false)
     override val justify: Justify,
     override val type: String,
-    val innerWire: Int?,
-    val outerWire: Int?,
+    val hollow: List<String>,
     val loopback: Boolean = false,
-    val loopbackWire: Int? = null
-) : HeaderBlockIOField()
+) : HeaderBlockIOField() {
+
+    override fun toString(): String {
+        return XML.encodeToString(this)
+    }
+
+}
 
 @Serializable
 @SerialName("innercode")
-data class InnerCode(
+class InnerCode(
     val name: String,
-    val io: BlockIO,
-    override val wires: Wires,
-    override val blocks: Blocks
-) : Code()
+    val io: BlockIO = BlockIO(),
+    override val wires: Wires = Wires(),
+    override val blocks: Blocks = Blocks()
+) : Code() {
+
+    override fun toString(): String {
+        return XML.encodeToString(this)
+    }
+
+}

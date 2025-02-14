@@ -54,7 +54,7 @@ open class RootSettingGroup : SettingGroup("settings") {
             ImGui.endDisabled()
             ImGui.sameLine()
             if (ImGui.button(closeBtn.imguiString())) {
-                if (changed) reset()
+                this.allSettings.forEach { it.reset() }
                 shown = false
             }
         }

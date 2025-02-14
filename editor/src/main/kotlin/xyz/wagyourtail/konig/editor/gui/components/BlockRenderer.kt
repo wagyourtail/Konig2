@@ -1,50 +1,47 @@
-package xyz.wagyourtail.konig.editor.gui.block
+package xyz.wagyourtail.konig.editor.gui.components
 
 import imgui.ImDrawList
 import imgui.ImGui
 import imgui.ImVec2
+import imgui.internal.flag.ImGuiButtonFlags
 import imgui.flag.ImGuiKey
+import xyz.wagyourtail.commonskt.collection.DefaultMap
 import xyz.wagyourtail.commonskt.collection.defaultedMapOf
+import xyz.wagyourtail.commonskt.position.Pos2D
+import xyz.wagyourtail.commonskt.position.max
 import xyz.wagyourtail.commonskt.utils.mutliAssociate
 import xyz.wagyourtail.konig.editor.ABGR
+import xyz.wagyourtail.konig.editor.gui.components.BlockRenderer.HollowRenderer
 import xyz.wagyourtail.konig.editor.helper.*
 import xyz.wagyourtail.konig.structure.*
 import kotlin.math.max
 
-open class BlockRenderer(val header: HeaderBlock, val id: String) {
+abstract class BlockRenderer<T: HollowRenderer>(val header: HeaderBlock, val id: String) {
 
     open val ports = header.io.ports.mutliAssociate { it.side to it }.mapValues { it.value.mutliAssociate { it.justify to it } }
 
     val bgId = "${header.name}##${id}"
+    open val noButtons = false
 
     fun portId(port: HeaderBlockIOField) = "##block-${header.name}#${id}#${port.name}"
 
-    open val scale = 50f
-    var screenPos: ImVec2 = ImVec2()
+    open var scale = 50.0
+    var screenPos = ImVec2()
+    var screenPosWithScroll = ImVec2()
 
     val hollowsByGroup: Map<String, List<Hollow>> = header.hollow.mutliAssociate { hollow ->
         hollow.groupId to hollow
     }
 
     val activeHollows = defaultedMapOf<String, Hollow> { group ->
-        if (group.startsWith("ungrouped\$")) {
+        if (group.startsWith("ungrouped|")) {
             header.hollow.single { it.groupId == group }
         } else {
             header.hollow.first { it.group == group }
         }
     }
 
-    open val hollowRenderers = defaultedMapOf<Hollow, HollowRenderer> {
-        object : HollowRenderer {
-            override val minSize: Vec2d = Vec2d(.1, .1)
-            override var size: Vec2d = minSize
-
-            override fun process() {
-                val draw = ImGui.getWindowDrawList()
-                draw.addRectFilled(ImGui.getCursorPos(), ImGui.getCursorPos() + size.screenSize(), ABGR(255, 0, 0, 0).col)
-            }
-        }
-    }
+    abstract val hollowRenderers: DefaultMap<Hollow, T>
 
     var hollowLocations: CachedValue<Map<String, Double>> = CachedValue {
         var maxX = 0.0
@@ -54,7 +51,7 @@ open class BlockRenderer(val header: HeaderBlock, val id: String) {
         for ((index, entry) in entries.withIndex()) {
             val (id, group) = entry
             yLocs[id] = yPos
-            var minSize = Vec2d()
+            var minSize = Pos2D.ZERO
             for (hollow in group) {
                 minSize = max(hollowRenderers[hollow].minSize, minSize)
             }
@@ -64,10 +61,7 @@ open class BlockRenderer(val header: HeaderBlock, val id: String) {
         yLocs
     }
 
-    val Hollow.groupId
-        get() = if (group == null) { "ungrouped\$${name}" } else { group!! }
-
-    var minSize: CachedValue<Vec2d> = CachedValue {
+    var minSize: CachedValue<Pos2D> = CachedValue {
         var width = .1
         for (side in listOf(Side.TOP, Side.BOTTOM)) {
             val count = ports[side]?.values?.sumOf { it.size } ?: 0
@@ -82,14 +76,14 @@ open class BlockRenderer(val header: HeaderBlock, val id: String) {
         }
         val loc = hollowLocations.get().entries.maxByOrNull { it.value }
         if (loc != null) {
-            val rend = hollowRenderers[hollowsByGroup[loc.key]!!.first()]
+            val rend = hollowRenderers[hollowsByGroup.getValue(loc.key).first()]
             width = max(rend.minSize.x + .2, width)
             height = max(height, loc.value + rend.minSize.y + .1)
         }
-        Vec2d(width, height)
+        Pos2D(width, height)
     }
 
-    open var size: Vec2d = Vec2d(1f, 1f)
+    open var size: Pos2D = Pos2D(1.0, 1.0)
         set(value) {
             portOffsetLocations.invalidate()
             hollowLocations.invalidate()
@@ -99,20 +93,28 @@ open class BlockRenderer(val header: HeaderBlock, val id: String) {
 
     open fun process() {
         screenPos = ImGui.getCursorPos() + ImVec2(0f, ImGui.getFrameHeight())
+        screenPosWithScroll = ImGui.getCursorScreenPos()
         drawBg()
+        val cursor = ImGui.getCursorPos()
         drawPorts()
         drawHollows()
+        val draw = ImGui.getWindowDrawList()
+        val lAlt = ImGui.isKeyDown(ImGuiKey.LeftAlt)
+        if (lAlt) {
+            drawName(draw)
+        }
+        ImGui.setCursorPos(cursor)
     }
 
     fun drawHollows() {
-        val pos = Vec2d(.1f, 0f)
+        val pos = Pos2D(0.1, 0.0)
         val locs = hollowLocations.get().entries.toList()
         for ((idx, grp) in locs.withIndex()) {
             val (group, loc) = grp
-            val p = pos + Vec2d(0.0, loc)
+            val p = pos + Pos2D(0.0, loc)
             ImGui.setCursorPos(p.screenPos())
             val active = hollowRenderers[activeHollows[group]]
-            active.size = Vec2d(
+            active.size = Pos2D(
                 size.x - .2f,
                 if (idx == locs.size - 1) {
                     size.y - loc - .1f
@@ -124,14 +126,14 @@ open class BlockRenderer(val header: HeaderBlock, val id: String) {
         }
     }
 
-    var portOffsetLocations: CachedValue<Map<HeaderBlockIOField, Vec2d>> = CachedValue {
+    var portOffsetLocations: CachedValue<Map<HeaderBlockIOField, Pos2D>> = CachedValue {
         buildMap {
             for (side in Side.entries) {
                 val begin = when (side) {
-                    Side.TOP -> Vec2d(0f, 0f)
-                    Side.BOTTOM -> Vec2d(0.0, this@BlockRenderer.size.y)
-                    Side.LEFT -> Vec2d(0f, 0f)
-                    Side.RIGHT -> Vec2d(this@BlockRenderer.size.x, 0.0)
+                    Side.TOP -> Pos2D.ZERO
+                    Side.BOTTOM -> Pos2D(0.0, this@BlockRenderer.size.y)
+                    Side.LEFT -> Pos2D.ZERO
+                    Side.RIGHT -> Pos2D(this@BlockRenderer.size.x, 0.0)
                 }
                 for (justify in Justify[side]) {
                     val p = ports[side]?.get(justify)
@@ -139,39 +141,39 @@ open class BlockRenderer(val header: HeaderBlock, val id: String) {
                     when (justify) {
                         Justify.TOP -> {
                             for ((i, port) in p.withIndex()) {
-                                val lPos = i * .2f + .1f
-                                put(port, Vec2d(0f, lPos) + begin)
+                                val lPos = i * .2 + .1
+                                put(port, Pos2D(0.0, lPos) + begin)
                             }
                         }
                         Justify.BOTTOM -> {
                             for ((i, port) in p.reversed().withIndex()) {
-                                val lPos = i * .2f + .1f
-                                put(port, Vec2d(0.0, this@BlockRenderer.size.y - lPos) + begin)
+                                val lPos = i * .2 + .1
+                                put(port, Pos2D(0.0, this@BlockRenderer.size.y - lPos) + begin)
                             }
                         }
                         Justify.RIGHT -> {
                             for ((i, port) in p.reversed().withIndex()) {
-                                val lPos = i * .2f + .1f
-                                put(port, Vec2d(this@BlockRenderer.size.x - lPos, 0.0) + begin)
+                                val lPos = i * .2 + .1
+                                put(port, Pos2D(this@BlockRenderer.size.x - lPos, 0.0) + begin)
                             }
                         }
                         Justify.LEFT -> {
                             for ((i, port) in p.withIndex()) {
-                                val lPos = i * .2f + .1f
-                                put(port, Vec2d(lPos, 0f) + begin)
+                                val lPos = i * .2 + .1
+                                put(port, Pos2D(lPos, 0.0) + begin)
                             }
                         }
                         Justify.CENTER -> {
                             val offset = (p.size - 1) * .1f
                             val firstPos = when (side) {
-                                Side.TOP, Side.BOTTOM -> Vec2d(this@BlockRenderer.size.x / 2f - offset, 0.0) + begin
-                                Side.LEFT, Side.RIGHT -> Vec2d(0.0, this@BlockRenderer.size.y / 2f - offset) + begin
+                                Side.TOP, Side.BOTTOM -> Pos2D(this@BlockRenderer.size.x / 2f - offset, 0.0) + begin
+                                Side.LEFT, Side.RIGHT -> Pos2D(0.0, this@BlockRenderer.size.y / 2f - offset) + begin
                             }
                             for ((i, port) in p.withIndex()) {
-                                val lPos = i * .2f
+                                val lPos = i * .2
                                 put(port, when (side) {
-                                    Side.TOP, Side.BOTTOM -> Vec2d(lPos, 0f) + firstPos
-                                    Side.LEFT, Side.RIGHT -> Vec2d(0f, lPos) + firstPos
+                                    Side.TOP, Side.BOTTOM -> Pos2D(lPos, 0.0) + firstPos
+                                    Side.LEFT, Side.RIGHT -> Pos2D(0.0, lPos) + firstPos
                                 })
                             }
                         }
@@ -181,7 +183,7 @@ open class BlockRenderer(val header: HeaderBlock, val id: String) {
         }
     }
 
-    val portRadius = .05f
+    val portRadius = .05
 
     open fun drawPorts() {
         val draw = ImGui.getWindowDrawList()
@@ -189,70 +191,75 @@ open class BlockRenderer(val header: HeaderBlock, val id: String) {
         for ((port, portPos) in portOffsetLocations.get()) {
             val centerPos = portPos.screenPos()
             drawPort(port, centerPos, draw)
-            ImGui.setCursorPos(Vec2d(-portRadius, -portRadius).screenSize() + centerPos - offset)
-            portButton(port, ImGui.invisibleButton(portId(port), Vec2d(portRadius * 2, portRadius * 2).screenSize()))
+            if (!noButtons) {
+                ImGui.setCursorPos(
+                    Pos2D(-portRadius, -portRadius).screenSize()
+                    + centerPos
+                    - offset
+                    - screenPosWithScroll
+                    + screenPos
+                )
+                portButton(
+                    port,
+                    ImGui.invisibleButton(portId(port), Pos2D(portRadius * 2, portRadius * 2).screenSize())
+                )
+            }
         }
     }
 
+
     open fun drawPort(inp: HeaderBlockIOField, pos: ImVec2, draw: ImDrawList) {
-        draw.addCircleFilled(pos, portRadius * scale, 0xFFFFFFFF.toInt())
+        draw.addCircleFilled(pos, (portRadius * scale).toFloat(), 0xFFFFFFFF.toInt())
+    }
+
+    open fun drawName(draw: ImDrawList) {
+        val textSize = ImGui.calcTextSize(header.name)
+        draw.addText(size.screenSize() / 2f + screenPosWithScroll - textSize / 2f, 0xFFFFFFFF.toInt(), header.name)
     }
 
     open fun drawBg() {
         val draw = ImGui.getWindowDrawList()
         val imageId = header.image?.let { ImageRegistry[it] }
-        bgButton(if (imageId != null) {
-            ImGui.imageButton(imageId.toLong(), size.screenSize())
+        if (imageId != null) {
+            draw.addImage(imageId.toLong(), Pos2D.ZERO.screenPos(), size.screenPos())
         } else {
-            draw.addRectFilled(Vec2d().screenPos(), size.screenPos(), 0xFFFF0000.toInt())
-            ImGui.invisibleButton(bgId, size.screenSize())
-        })
+            draw.addRectFilled(Pos2D.ZERO.screenPos(), size.screenPos(), 0xFFFF0000.toInt())
+        }
+        if (!noButtons) {
+            bgButton(
+                ImGui.invisibleButton(
+                    bgId,
+                    size.screenSize(),
+                    ImGuiButtonFlags.MouseButtonMask_ or ImGuiButtonFlags.PressedOnClick
+                )
+            )
+        }
         val lAlt = ImGui.isKeyDown(ImGuiKey.LeftAlt)
-        if (lAlt || imageId == null) {
-            val textSize = ImGui.calcTextSize(header.name)
-            if (!lAlt) {
-                ImGui.pushClipRect(Vec2d().screenPos(), size.screenPos(), true)
-            }
-            draw.addText(size.screenSize() / 2f + screenPos - textSize / 2f, 0xFFFFFFFF.toInt(), header.name)
-            if (!lAlt) {
-                ImGui.popClipRect()
-            }
+        if (!lAlt && imageId == null) {
+            draw.pushClipRect(Pos2D.ZERO.screenPos(), size.screenPos(), true)
+            drawName(draw)
+            draw.popClipRect()
         }
     }
 
     open fun bgButton(btn: Boolean) {
-        ImGui.setItemAllowOverlap()
-        if (btn) {
-            onBgClicked()
-        }
     }
 
     open fun portButton(inp: HeaderBlockIOField, btn: Boolean) {
-        if (btn) {
-            onPortClicked(inp)
-        }
     }
 
-    open fun onBgClicked() {
-
+    fun Pos2D.screenPos(): ImVec2 {
+        return ImVec2(x.toFloat(), y.toFloat()) * scale.toFloat() + screenPosWithScroll
     }
 
-    open fun onPortClicked(inp: HeaderBlockIOField) {
-
-    }
-
-    fun Vec2d.screenPos(): ImVec2 {
-        return ImVec2(x.toFloat(), y.toFloat()) * scale + screenPos
-    }
-
-    fun Vec2d.screenSize(): ImVec2 {
-        return ImVec2(x.toFloat(), y.toFloat()) * scale
+    fun Pos2D.screenSize(): ImVec2 {
+        return ImVec2(x.toFloat(), y.toFloat()) * scale.toFloat()
     }
 
     interface HollowRenderer {
 
-        val minSize: Vec2d
-        var size: Vec2d
+        val minSize: Pos2D
+        var size: Pos2D
 
         fun process()
 
