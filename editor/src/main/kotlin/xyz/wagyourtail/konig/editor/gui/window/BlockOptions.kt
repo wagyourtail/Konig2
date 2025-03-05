@@ -14,7 +14,7 @@ object BlockOptions {
         val first = canvas.activeComponents.first()
         if (first !is CanvasBlockRenderer) return
         ImGui.setNextWindowClass(ImGuiWindowClass().apply {
-            viewportFlagsOverrideSet = ImGuiViewportFlags.Minimized
+            viewportFlagsOverrideSet = ImGuiViewportFlags.IsMinimized
             dockNodeFlagsOverrideSet = ImGuiDockNodeFlags.NoTabBar
         })
         if (ImGui.begin("blockOptions")) {

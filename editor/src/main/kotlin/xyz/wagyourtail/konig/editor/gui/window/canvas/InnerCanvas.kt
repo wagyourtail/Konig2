@@ -64,9 +64,18 @@ class InnerCanvas(id: String, headers: HeaderResolver, code: InnerCode, val holl
             return max(min, Pos2D(width, height))
         }
 
+    override fun onLeftClick() {
+        super.onLeftClick()
+        parent.onLeftClick()
+    }
+
+    override fun drawBg() {
+        ImGui.setNextItemAllowOverlap()
+        super.drawBg()
+    }
+
     override fun bgButton(btn: Boolean) {
         super.bgButton(btn)
-        ImGui.setItemAllowOverlap()
         if (btn) {
             parent.onLeftClick()
             println("Inner Activated")

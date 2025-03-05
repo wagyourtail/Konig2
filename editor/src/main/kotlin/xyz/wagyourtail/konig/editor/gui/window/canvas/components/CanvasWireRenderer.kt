@@ -188,10 +188,10 @@ data class CanvasWireRenderer(override val canvas: Canvas<*>, val wire: Wire) : 
                         n.toPos2D()
                     }).screenPos() - offset - ImVec2(wireWidth / 2, wireWidth / 2f)
                     ImGui.setCursorPos(start)
+                    ImGui.setNextItemAllowOverlap()
                     if (ImGui.buttonEx("$id#$i", ImVec2(wireWidth, (diff + wireWidth / 2f).toFloat()), ImGuiButtonFlags.MouseButtonMask_ or ImGuiButtonFlags.PressedOnClick)) {
                         handleClick(p, n, connections)
                     }
-                    ImGui.setItemAllowOverlap()
                     pp = p
                 } else if (p.y == n.y) {
                     if (pp != null && p is WireSegment && pp.y == p.y) {
@@ -205,10 +205,10 @@ data class CanvasWireRenderer(override val canvas: Canvas<*>, val wire: Wire) : 
                         n.toPos2D()
                     }).screenPos() - offset - ImVec2(wireWidth / 2f, wireWidth / 2f)
                     ImGui.setCursorPos(start)
+                    ImGui.setNextItemAllowOverlap()
                     if (ImGui.buttonEx("$id#$i", ImVec2((diff + wireWidth / 2f).toFloat(), wireWidth), ImGuiButtonFlags.MouseButtonMask_ or ImGuiButtonFlags.PressedOnClick)) {
                         handleClick(p, n, connections)
                     }
-                    ImGui.setItemAllowOverlap()
                     pp = p
                 } else {
                     val toAdd = if (pp != null) {

@@ -19,7 +19,7 @@ slf4j = "2.0.13"
 
 jszip = "3.10.1"
 
-imgui = "1.87.7"
+imgui = "1.89.0"
 
 [libraries]
 asm = { module = "org.ow2.asm:asm", version.ref = "asm" }

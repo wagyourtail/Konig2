@@ -2,9 +2,10 @@ package xyz.wagyourtail.konig.editor.gui.window.canvas
 
 import imgui.ImDrawList
 import imgui.ImVec2
-import imgui.flag.ImGuiButtonFlags
+import imgui.flag.ImGuiHoveredFlags
 import imgui.flag.ImGuiKey
 import imgui.internal.ImGui
+import imgui.internal.flag.ImGuiButtonFlags
 import xyz.wagyourtail.commonskt.collection.defaultedMapOf
 import xyz.wagyourtail.commonskt.position.Pos2D
 import xyz.wagyourtail.konig.editor.ABGR
@@ -63,6 +64,9 @@ abstract class Canvas<T: Code>(
         }
     }
 
+    open fun onLeftClick() {
+    }
+
     open fun getBlockRenderer(id: Int): CanvasBlockRenderer? {
         try {
             return blockRenderers[id]
@@ -84,7 +88,7 @@ abstract class Canvas<T: Code>(
     open val activeComponents = mutableSetOf<CanvasComponent>()
     var hovered = false
 
-    fun drawBg() {
+    open fun drawBg() {
         val draw = ImGui.getWindowDrawList()
 
         val topLeftPos = pos
@@ -93,14 +97,15 @@ abstract class Canvas<T: Code>(
         draw.addRectFilled(
             topLeftPos.screenPos(),
             bottomRightPos.screenPos(),
-            ABGR(255, 25, 25, 25).col
+            if (hovered) ABGR(255, 25, 25, 25).col else ABGR(255, 20, 20, 20).col
         )//ABGR(ImGui.getStyle().getColor(ImGuiCol.ChildBg)).col)
 
         drawBgLines(draw, topLeftPos, bottomRightPos)
 
         ImGui.setCursorPos(screenPos.copy() - ImVec2(0f, ImGui.getFrameHeight()))
-        bgButton(ImGui.invisibleButton("$id.bg", size.screenSize(), ImGuiButtonFlags.MouseButtonMask_))
-        hovered = ImGui.isItemHovered()
+
+        bgButton(ImGui.invisibleButton("$id.bg", size.screenSize(), ImGuiButtonFlags.MouseButtonMask_ or ImGuiButtonFlags.PressedOnClick))
+        hovered = ImGui.isItemHovered(ImGuiHoveredFlags.AllowWhenOverlapped or ImGuiHoveredFlags.AllowWhenBlockedByActiveItem)
     }
 
     fun placeNew(header: HeaderBlock, offset: Pos2D) {
@@ -169,6 +174,8 @@ abstract class Canvas<T: Code>(
 
         drawBg()
         drawCode()
+
+        ImGui.dummy(0f, 0f)
 
         ImGui.endGroup()
     }

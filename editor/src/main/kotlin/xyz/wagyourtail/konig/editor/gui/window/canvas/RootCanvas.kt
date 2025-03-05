@@ -2,6 +2,7 @@ package xyz.wagyourtail.konig.editor.gui.window.canvas
 
 import imgui.ImGuiWindowClass
 import imgui.ImVec2
+import imgui.flag.ImGuiHoveredFlags
 import imgui.flag.ImGuiMouseButton
 import imgui.flag.ImGuiStyleVar
 import imgui.flag.ImGuiViewportFlags
@@ -30,16 +31,20 @@ class RootCanvas(
 
     override var size: Pos2D = Pos2D(.1, .1)
 
+    override fun drawBg() {
+        ImGui.setNextItemAllowOverlap()
+        super.drawBg()
+    }
+
     override fun bgButton(btn: Boolean) {
         super.bgButton(btn)
-        ImGui.setItemAllowOverlap()
-        if (ImGui.isItemHovered()) {
+        if (ImGui.isItemHovered(ImGuiHoveredFlags.AllowWhenOverlapped)) {
             val delta = ImGui.getIO().mouseWheel
             if (delta != 0f) {
                 scale = max(1.0, scale + delta)
             }
         }
-        if (ImGui.isMouseDown(ImGuiMouseButton.Middle) && ImGui.isItemHovered()) {
+        if (ImGui.isMouseDown(ImGuiMouseButton.Middle) && ImGui.isItemHovered(ImGuiHoveredFlags.AllowWhenOverlapped)) {
             pos -= (ImGui.getIO().mouseDelta / scale.toFloat()).toPos2D()
         }
         if (btn) {
@@ -65,7 +70,7 @@ class RootCanvas(
 
     override fun process() {
         ImGui.setNextWindowClass(ImGuiWindowClass().apply {
-            viewportFlagsOverrideSet = ImGuiViewportFlags.Minimized
+            viewportFlagsOverrideSet = ImGuiViewportFlags.IsMinimized
             dockNodeFlagsOverrideSet = ImGuiDockNodeFlags.NoTabBar
         })
         ImGui.pushStyleVar(ImGuiStyleVar.WindowPadding, ImVec2(0f, 0f))

@@ -92,6 +92,7 @@ class CanvasBlockRenderer(override val canvas: Canvas<*>, val block: Block) : Bl
     }
 
     fun onLeftClick() {
+        canvas.onLeftClick()
         if (!ImGui.isKeyDown(ImGuiKey.LeftCtrl)) {
             canvas.activeComponents.clear()
         }
@@ -145,21 +146,20 @@ class CanvasBlockRenderer(override val canvas: Canvas<*>, val block: Block) : Bl
 
     override fun bgButton(btn: Boolean) {
         super.bgButton(btn)
-        ImGui.setItemAllowOverlap()
-        if (active && canvas.hovered && ImGui.isMouseDown(ImGuiMouseButton.Left) && !hollowRenderers.values.any { it.activeComponents.isNotEmpty() }) {
-            tryDrag()
-        } else {
-            this.x = 0f
-            this.y = 0f
-        }
         if (btn) {
             if (ImGui.isMouseClicked(ImGuiMouseButton.Left)) {
-                println("block clicked ${block}")
+                println("block clicked $block")
                 onLeftClick()
             }
             if (ImGui.isMouseClicked(ImGuiMouseButton.Right)) {
                 println("block right clicked")
             }
+        }
+        if (active && canvas.hovered && ImGui.isMouseDown(ImGuiMouseButton.Left) && !hollowRenderers.values.any { it.activeComponents.isNotEmpty() }) {
+            tryDrag()
+        } else {
+            this.x = 0f
+            this.y = 0f
         }
     }
 

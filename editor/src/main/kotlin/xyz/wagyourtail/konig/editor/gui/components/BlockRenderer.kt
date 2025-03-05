@@ -226,6 +226,7 @@ abstract class BlockRenderer<T: HollowRenderer>(val header: HeaderBlock, val id:
             draw.addRectFilled(Pos2D.ZERO.screenPos(), size.screenPos(), 0xFFFF0000.toInt())
         }
         if (!noButtons) {
+            ImGui.setNextItemAllowOverlap()
             bgButton(
                 ImGui.invisibleButton(
                     bgId,
